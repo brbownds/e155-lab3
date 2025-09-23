@@ -7,32 +7,33 @@
 // This is where we divide our clock to generate a slower clock signal so we don't bleed
 // or ghost when flickering. 
 
-module lab3_bb( input logic  notreset,
+module lab3_bb( input logic  reset,
 				input  logic [3:0] col,
 				output  logic [3:0] row,
 				output logic [6:0] seg,
 				output logic disp0, disp1); 
 				
-				logic select_mux;
-				logic reset;
+				logic [1:0] select_mux;
 				logic int_osc;
-				logic [3:0] col_sync, row_pressed, digit, digit_out;
-				logic [24:0] counter;
-				logic new_num;
+				logic [3:0] col_sync;
+				//logic [3:0] row_sync; 
+				logic [3:0] digit;
+				logic [3:0] digit_out;
+				logic [3:0] row_pressed;
+				logic [24:0] counter = 0; 
+				logic new_num; 
 				
-	assign row = row_pressed;
 // Instantiate our HSOSC 
 // Internal high-speed oscillator, divides 48MHz into 24MHz because of 2'b01
    HSOSC #(.CLKHF_DIV(2'b01)) 
          hf_osc (.CLKHFPU(1'b1), .CLKHFEN(1'b1), .CLKHF(int_osc));
-
-  
-  // Counter
-   always_ff @(posedge int_osc, negedge reset) begin
-	   if (!reset) begin
-		   counter <=0; 
-		   select_mux <= 1'b0; end
-     else if(counter == 1000) begin
+	
+  // slow Counter
+   always_ff @(posedge int_osc or negedge reset) begin
+	   if (~reset) begin
+		   counter <= 0; 
+		   select_mux <=0; end
+     else if(counter == 300000) begin
 		 counter <= 0; 
 		 select_mux <= ~select_mux;
 		 end
@@ -40,18 +41,12 @@ module lab3_bb( input logic  notreset,
 		 counter <= counter + 1;
 		end
    end
- 
-   
-	assign reset = ~notreset;
-	 
-	synchronizer syncer(int_osc, reset, col, col_sync);
-		
-	keydecoder keydecoder(row_pressed, col_sync, digit);
-	
-	keyscan keyscan(select_mux, reset, col_sync, row_pressed, new_num);
-
-    debounce debounce(int_osc, reset, new_num, digit, digit_out, disp0, disp1);
-	
+  	 
+	// synchronizer syncer(int_osc, reset, row, col, col_sync, row_sync);
+	keyscan keyscan(int_osc, reset, col, row, row_pressed, new_num);
+	keydecoder keydecoder(row_pressed, col, digit);
+    debounce debounce(int_osc, reset, select_mux, digit, digit_out, disp0, disp1);
 	sevenseg sevenseg (digit_out, seg);
 
-endmodule	
+
+endmodule
