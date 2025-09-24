@@ -13,8 +13,8 @@ module synchronizer(input logic clk, reset,
     logic [3:0] col1;
 	logic [3:0] row1;
 
-   always_ff @(posedge clk or negedge reset) begin
-        if (~reset) begin
+   always_ff @(posedge clk) begin
+        if (reset==0) begin
             col1     <= 4'b1111;
             col_sync <= 4'b1111;
 			row1     <= 4'b1111;
@@ -27,5 +27,4 @@ module synchronizer(input logic clk, reset,
         end
     end
 	
-
-endmodule 
+endmodule

@@ -9,19 +9,18 @@
 
 module lab3_bb( input logic  reset,
 				input  logic [3:0] col,
-				output  logic [3:0] row,
-				output logic [6:0] seg,
+				output  logic [3:0] row_sync,
+				output logic [6:0]  seg,
 				output logic disp0, disp1); 
 				
-				logic [1:0] select_mux;
+				logic slow_clk;
 				logic int_osc;
 				logic [3:0] col_sync;
-				//logic [3:0] row_sync; 
-				logic [3:0] digit;
-				logic [3:0] digit_out;
-				logic [3:0] row_pressed;
-				logic [24:0] counter = 0; 
-				logic new_num; 
+				logic [3:0] row;
+				logic [3:0] digit, digit_out, s1, s0;
+				logic [24:0] counter; 
+				logic debounce_en, select, debounced;
+				logic drive_en; 
 				
 // Instantiate our HSOSC 
 // Internal high-speed oscillator, divides 48MHz into 24MHz because of 2'b01
@@ -29,23 +28,48 @@ module lab3_bb( input logic  reset,
          hf_osc (.CLKHFPU(1'b1), .CLKHFEN(1'b1), .CLKHF(int_osc));
 	
   // slow Counter
-   always_ff @(posedge int_osc or negedge reset) begin
-	   if (~reset) begin
+	always_ff @(posedge int_osc) begin
+	   if (reset==0) begin
 		   counter <= 0; 
-		   select_mux <=0; end
-     else if(counter == 300000) begin
+		   slow_clk <=0;
+		   select <= 1'b0;
+		end
+     else if(counter == 50000) begin
 		 counter <= 0; 
-		 select_mux <= ~select_mux;
-		 end
+		 slow_clk <= ~slow_clk;
+		 select <= ~select;
+      end
      else begin          
 		 counter <= counter + 1;
 		end
    end
+   
+   
+   // shift bit register
+   always_ff @(posedge slow_clk) begin
+    if (reset==0) begin
+        s0 <= '0;
+        s1 <= '0;
+    end else if (drive_en) begin
+        s0 <= digit;   // load new value
+        s1 <= s0;  // shift old value down
+    end
+end
+
+    assign digit_out = select ? s1 : s0;
+
+	assign disp0 = select;
+	assign disp1 = ~select;
+
   	 
-	// synchronizer syncer(int_osc, reset, row, col, col_sync, row_sync);
-	keyscan keyscan(int_osc, reset, col, row, row_pressed, new_num);
-	keydecoder keydecoder(row_pressed, col, digit);
-    debounce debounce(int_osc, reset, select_mux, digit, digit_out, disp0, disp1);
+	synchronizer syncer(slow_clk, reset, row, col, col_sync, row_sync);	
+	
+	keyscan keyscan(slow_clk, reset, col, row, debounced, debounce_en, drive_en);
+
+	keydecoder keydecoder(row_sync, col_sync, digit);
+    
+	debounce debouncer(slow_clk, reset, debounce_en, debounced);  
+	
 	sevenseg sevenseg (digit_out, seg);
 
 

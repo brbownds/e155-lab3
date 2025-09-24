@@ -1,93 +1,41 @@
 // Broderick Bownds
 // brbownds@hmc.edu
 // 9/20/25
-// This module "debounce" takes into account for switching bouncing and countering that
-// by holding a signal until it is receive a HIGH or 1 instead of bouncing from 0 to 1. 
+// Debouncer: filters out switch bouncing by requiring the
+// input enable to stay HIGH for a fixed duration before asserting debounced.
 
 module debounce #(
-  parameter int CLK_FREQ_HZ      = 50_000_000,
-  parameter int DEBOUNCE_TIME_MS = 20,
-  parameter int REFRESH_HZ       = 1000, 
-  parameter int DEBOUNCE_CYCLES  = (CLK_FREQ_HZ/1000)*DEBOUNCE_TIME_MS,
-  parameter int TOGGLE_CYCLES    = CLK_FREQ_HZ/(2*REFRESH_HZ)
-) (
-  input  logic        clk,
-  input  logic        reset,
-  input  logic        en,           // press strobe
-  input  logic [3:0]  digit,        // new digit from keyscan
-  output logic [3:0]  digit_out,    // current digit to display
-  output logic        disp0,
-  output logic        disp1
+    parameter integer CNT_MAX = 50_000_00  // adjust for your clk freq & debounce time
+)(
+    input  logic clk,
+    input  logic reset,        // active-low reset
+    input  logic debounce_en,  // raw input signal
+    output logic debounced     // stable output
 );
 
-  // debounce one-shot
-  logic button_in;
-  logic button_stable;
-  logic button_pressed_pulse;
-  logic [24:0] debounce_counter;
-  logic [3:0] s0, s1;
+    logic [$clog2(CNT_MAX)-1:0] db_counter;
 
-  always_comb begin
-    button_in = en;  // valid press only if digit is non-zero
-  end
-
-  always_ff @(posedge clk or negedge reset) begin
-    if (~reset) begin
-      button_stable        <= 1'b0;
-      debounce_counter     <= 0;
-      button_pressed_pulse <= 1'b0;
-    end else begin
-      button_pressed_pulse <= 1'b0;
-      if (button_in != button_stable) begin
-        if (debounce_counter >= DEBOUNCE_CYCLES - 1) begin
-          button_stable        <= button_in;
-          debounce_counter     <= 0;
-          if (button_in)
-            button_pressed_pulse <= 1'b1;
-        end else begin
-          debounce_counter <= debounce_counter + 1;
+    always_ff @(posedge clk) begin
+        if (reset==0) begin
+            db_counter <= '0;
+            debounced  <= 1'b0;
+        end 
+        else begin
+            if (debounce_en) begin
+                if (db_counter == CNT_MAX-1) begin
+                    db_counter <= '0;
+                    debounced  <= 1'b1;
+                end 
+                else begin
+                    db_counter <= db_counter + 1;
+                    debounced  <= 1'b0;
+                end
+            end 
+            else begin
+                db_counter <= 0;
+                debounced  <= 1'b0;
+            end
         end
-      end else begin
-        debounce_counter <= 0;
-      end
     end
-  end
-
-  // display refresh counter + mux select
-  logic        select_mux;
-  logic [24:0] scan_counter;
-
-  always_ff @(posedge clk or negedge reset) begin
-    if (~reset) begin
-      scan_counter <= 0;
-      select_mux   <= 1'b0;
-    end else begin
-      if (scan_counter == TOGGLE_CYCLES - 1) begin
-        scan_counter <= 0;
-        select_mux   <= ~select_mux;
-      end else begin
-        scan_counter <= scan_counter + 1;
-      end
-    end
-  end
-  // in the debounce module we have the function of two-digit shift register
-  // so that the new number gets updated from the right and shifts the old number
- always_ff @(posedge clk or negedge reset) begin
-  if (~reset) begin
-    s0 <= 0;
-    s1 <= 0;
-  end else if (button_pressed_pulse) begin
-    s1 <= s0;
-    s0 <= digit;
-  end
-end
-  // output digit based on toggle
-  always_comb begin
-    digit_out = select_mux ? s1 : s0;
-  end
-
-  assign disp0 = ~select_mux;  // left digit
-  assign disp1 =  select_mux;  // right digit
 
 endmodule
-
