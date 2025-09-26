@@ -13,12 +13,12 @@ module synchronizer(input logic clk, reset,
     logic [3:0] col1;
 	logic [3:0] row1;
 
-   always_ff @(posedge clk) begin
+   always_ff @(posedge clk, negedge reset) begin
         if (reset==0) begin
-            col1     <= 4'b1111;
-            col_sync <= 4'b1111;
-			row1     <= 4'b1111;
-			row_sync <= 4'b1111;
+            col1     <= 4'b0000;
+            col_sync <= 4'b0000;  
+			row1     <= 4'b0000;
+			row_sync <= 4'b0000;
         end else begin
             col1     <= col;
             col_sync <= col1;

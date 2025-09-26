@@ -11,7 +11,8 @@ module lab3_bb( input logic  reset,
 				input  logic [3:0] col,
 				output  logic [3:0] row_sync,
 				output logic [6:0]  seg,
-				output logic disp0, disp1); 
+				output logic disp0, disp1,
+				output logic [3:0] led); 
 				
 				logic slow_clk;
 				logic int_osc;
@@ -25,10 +26,10 @@ module lab3_bb( input logic  reset,
 // Instantiate our HSOSC 
 // Internal high-speed oscillator, divides 48MHz into 24MHz because of 2'b01
    HSOSC #(.CLKHF_DIV(2'b01)) 
-         hf_osc (.CLKHFPU(1'b1), .CLKHFEN(1'b1), .CLKHF(int_osc));
+         hf_osc (.CLKHFPU(1'b1), .CLKHFEN(1'b1), .CLKHF(int_osc)); 
 	
   // slow Counter
-	always_ff @(posedge int_osc) begin
+	always_ff @(posedge int_osc, negedge reset) begin
 	   if (reset==0) begin
 		   counter <= 0; 
 		   slow_clk <=0;
@@ -46,10 +47,10 @@ module lab3_bb( input logic  reset,
    
    
    // shift bit register
-   always_ff @(posedge slow_clk) begin
+   always_ff @(posedge slow_clk, negedge reset) begin
     if (reset==0) begin
-        s0 <= '0;
-        s1 <= '0;
+        s0 <= 1'b0;
+        s1 <= 1'b0;
     end else if (drive_en) begin
         s0 <= digit;   // load new value
         s1 <= s0;  // shift old value down
@@ -64,7 +65,7 @@ end
   	 
 	synchronizer syncer(slow_clk, reset, row, col, col_sync, row_sync);	
 	
-	keyscan keyscan(slow_clk, reset, col, row, debounced, debounce_en, drive_en);
+	keyscan keyscan(slow_clk, reset, col_sync, row, led, row_sync, debounced, debounce_en, drive_en);
 
 	keydecoder keydecoder(row_sync, col_sync, digit);
     
