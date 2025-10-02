@@ -81,12 +81,12 @@ statetype state, nextstate;
 		R3_CHECK: nextstate = exact1_button  ? DRIVE:     R0_IDLE;
         R3_HOLD:  nextstate = button_pressed ? R3_HOLD:   R0_IDLE;
 
-        DRIVE: begin
+       DRIVE: begin
             if (button_pressed) begin
-                if      (if_0) nextstate = R0_HOLD;
-                else if (if_1) nextstate = R1_HOLD;
-                else if (if_2) nextstate = R2_HOLD;
-                else if (if_3) nextstate = R3_HOLD;
+                if      (if_1) nextstate = R0_HOLD;
+                else if (if_3) nextstate = R1_HOLD;
+                else if (if_0) nextstate = R2_HOLD;
+                else if (if_2) nextstate = R3_HOLD;
                 else           nextstate = R0_IDLE; // safety
             end 
             else begin
