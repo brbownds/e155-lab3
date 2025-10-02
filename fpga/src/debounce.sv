@@ -1,6 +1,7 @@
 // Broderick Bownds
 // brbownds@hmc.edu
 // 9/20/25
+
 // Debouncer: filters out switch bouncing by requiring the
 // input enable to stay HIGH for a fixed duration before asserting debounced.
 
@@ -37,4 +38,3 @@ module debounce (
     end
 
 endmodule
-
