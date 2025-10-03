@@ -83,10 +83,10 @@ statetype state, nextstate;
 
        DRIVE: begin
             if (button_pressed) begin
-                if      (if_1) nextstate = R0_HOLD;
-                else if (if_3) nextstate = R1_HOLD;
-                else if (if_0) nextstate = R2_HOLD;
-                else if (if_2) nextstate = R3_HOLD;
+                if      (if_0) nextstate = R0_HOLD;
+                else if (if_1) nextstate = R1_HOLD;
+                else if (if_2) nextstate = R2_HOLD;
+                else if (if_3) nextstate = R3_HOLD;
                 else           nextstate = R0_IDLE; // safety
             end 
             else begin
