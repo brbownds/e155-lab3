@@ -20,10 +20,11 @@ module synchronizer(input logic clk, reset,
 			row1     <= 4'b0000;
 			row_sync <= 4'b0000;
         end else begin
-            col1     <= col;
+           col1     <= col;
             col_sync <= col1;
 			row1     <= row;
 			row_sync <= row1;
+		
         end
     end
 	

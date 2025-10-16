@@ -9,7 +9,7 @@
 
 module lab3_bb( input logic  reset,
 				input  logic [3:0] col,
-				output  logic [3:0] row_sync,
+				output  logic [3:0] row,
 				output logic [6:0]  seg,
 				output logic disp0, disp1,
 				output logic [3:0] led); 
@@ -17,7 +17,7 @@ module lab3_bb( input logic  reset,
 				logic slow_clk;
 				logic int_osc;
 				logic [3:0] col_sync;
-				logic [3:0] row;
+				logic [3:0] row_sync;
 				logic [3:0] digit, digit_out, s1, s0;
 				logic [24:0] counter; 
 				logic debounce_en, select, debounced;
@@ -65,13 +65,15 @@ end
   	 
 	synchronizer syncer(slow_clk, reset, row, col, col_sync, row_sync);	
 	
-	keyscan keyscan(slow_clk, reset, col_sync, row, led, row_sync, debounced, debounce_en, drive_en);
+	keyscan keyscan(slow_clk, reset, col, row, led, row_sync, debounced, debounce_en, drive_en);
 
 	keydecoder keydecoder(row_sync, col_sync, digit);
     
-	debounce debouncer(slow_clk, reset, debounce_en, debounced);  
+	debouncer debouncer(slow_clk, reset, debounce_en, debounced);  
 	
 	sevenseg sevenseg (digit_out, seg);
 
 
 endmodule
+
+
