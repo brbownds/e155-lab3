@@ -5,7 +5,7 @@
 // Debouncer: filters out switch bouncing by requiring the
 // input enable to stay HIGH for a fixed duration before asserting debounced.
 
-module debounce (
+module debouncer (
     input  logic clk,
     input  logic reset,        // active-low reset
     input  logic debounce_en,  // raw input signal

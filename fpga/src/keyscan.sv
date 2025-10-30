@@ -48,7 +48,7 @@ module keyscan (
         end
         else begin
             state          <= nextstate;
-            button_pressed <= (|col);
+            button_pressed <= (^col);
             exact1_button  <= $onehot(col);
 
             // settle counter increments in IDLE states

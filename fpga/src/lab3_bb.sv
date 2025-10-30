@@ -25,7 +25,7 @@ module lab3_bb( input logic  reset,
 				
 // Instantiate our HSOSC 
 // Internal high-speed oscillator, divides 48MHz into 24MHz because of 2'b01
-   HSOSC #(.CLKHF_DIV(2'b01)) 
+   HSOSC #(.CLKHF_DIV(2'b00)) 
          hf_osc (.CLKHFPU(1'b1), .CLKHFEN(1'b1), .CLKHF(int_osc)); 
 	
   // slow Counter
@@ -75,5 +75,4 @@ end
 
 
 endmodule
-
 
