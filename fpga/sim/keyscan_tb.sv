@@ -1,102 +1,118 @@
+
 // Broderick Bownds
 // brbownds@hmc.edu
-// October 16, 2025
-//
-// keyscan_tb.sv — Testbench for keyscan FSM
-// Simulates key presses across all rows and verifies correct row drive, debounce, and state transitions.
+// 10/16/2025
+
+//keyscan_tb
 
 `timescale 1ns/1ps
 
 module keyscan_tb;
 
-    // DUT inputs
+    // Inputs
     logic clk;
     logic reset;
     logic [3:0] col;
     logic [3:0] row_pressed;
     logic debounced;
 
-    // DUT outputs
-    logic [3:0] row, led;
+    // Outputs
+    logic [3:0] row;
+    logic [3:0] led;
     logic debounce_en;
     logic drive_en;
 
-	logic [3:0] col_sync;
-	logic [3:0] row_sync;
+    // Instantiate DUT (Device Under Test)
+    keyscan uut (
+        .clk(clk),
+        .reset(reset),
+        .col(col),
+        .row(row),
+        .led(led),
+        .row_pressed(row_pressed),
+        .debounced(debounced),
+        .debounce_en(debounce_en),
+        .drive_en(drive_en)
+    );
 
-	synchronizer syncer(slow_clk, reset, row, col, col_sync, row_sync);	
+	// generate clock
+    initial clk = 0;
+    always #5 clk = ~clk;
 
-// Instantiate DUT
-    keyscan dut (.*);
-
-    // Clock: 100 MHz → 10 ns period
-    always begin
-        clk = 0; #5;
-        clk = 1; #5;
-    end
-
-    // Stimulus
+    
     initial begin
-        $display("=== Starting keyscan testbench ===");
-        col = 4'b0000;
-        row_pressed = 4'b0000;
-        debounced = 1'b0;
+        // Initialize all signals
+        reset        = 0;
+        col          = 4'b0000;
+        row_pressed  = 4'b0000;
+        debounced    = 0;
 
-        // Apply reset
-        reset = 0; #20;
-        reset = 1; #10;
-        $display("Reset complete.");
+        // Hold reset low briefly
+        #20;
+        reset = 1;
+        $display(" Starting keyscan FSM Test ");
 
-        // -------- Row 0 test --------
-        $display("\n[TEST] Press key on Row 0");
-        row_pressed = 4'b0001;     // active row 0
-        col = 4'b0001;             // one column active
-        debounced = 0; #20;        // wait
-        debounced = 1; #20;        // stable press
-        col = 4'b0000;             // release
-        debounced = 1; #20;
-        row_pressed = 4'b0000;
+        // Let the FSM stabilize in R0_IDLE
+        #40;
 
-        // -------- Row 1 test --------
-        $display("\n[TEST] Press key on Row 1");
-        row_pressed = 4'b0010;
-        col = 4'b0100;             // press column 2
-        debounced = 1; #40;
-        col = 4'b0000; debounced = 0; #20;
-        row_pressed = 4'b0000;
+        // row 0 active
+        $display("Testing Row 0");
+        row_pressed = 4'b0001;   // Indicate row 0 is active
+        col         = 4'b0001;   // One button pressed
+        debounced   = 1;         // Debounced signal asserted
+        #40;
+        debounced   = 0;
+        col         = 4'b0000;
+        #40;
 
-        // -------- Row 2 test --------
-        $display("\n[TEST] Press key on Row 2");
+        // row 1 active
+        $display("Testing Row 1");
+        row_pressed = 4'b0010;   // Row 1 pressed
+        col         = 4'b0010;
+        debounced   = 1;
+        #40;
+        debounced   = 0;
+        col         = 4'b0000;
+        #40;
+
+        // row 2 active
+        $display("Testing Row 2");
         row_pressed = 4'b0100;
-        col = 4'b0010;
-        debounced = 1; #30;
-        col = 4'b0000; debounced = 0; #20;
-        row_pressed = 4'b0000;
+        col         = 4'b0100;
+        debounced   = 1;
+        #40;
+        debounced   = 0;
+        col         = 4'b0000;
+        #40;
 
-        // -------- Row 3 test --------
-        $display("\n[TEST] Press key on Row 3");
+        // row 3 active
+        $display("Testing Row 3");
         row_pressed = 4'b1000;
-        col = 4'b1000;
-        debounced = 1; #30;
-        col = 4'b0000; debounced = 0; #20;
-        row_pressed = 4'b0000;
+        col         = 4'b1000;
+        debounced   = 1;
+        #40;
+        debounced   = 0;
+        col         = 4'b0000;
+        #40;
 
-        // -------- Multi-key test --------
-        $display("\n[TEST] Two simultaneous keys");
-        row_pressed = 4'b0011;
-        col = 4'b0110;
-        debounced = 1; #50;
-        col = 4'b0000; debounced = 0; #20;
-        row_pressed = 4'b0000;
+        // drive enable test
+        $display("Testing drive_en and debounce_en control signals");
+        row_pressed = 4'b0001;
+        col         = 4'b0001;
+        debounced   = 1;
+        #20;
+        $display("drive_en=%b, debounce_en=%b (expected both 1)", drive_en, debounce_en);
+        debounced   = 0;
+        #20;
 
-        $display("\n=== Testbench complete ===");
-        #100 $finish;
+        $display("\n--- Simulation Complete ---\n");
+        $finish;
     end
 
-    // Optional: monitor key signals
+  
     initial begin
-        $monitor("[%0t] state row=%b col=%b led=%b debounce_en=%b drive_en=%b",
-                 $time, row, col, led, debounce_en, drive_en);
+        $monitor("[%0t ns] state: row=%b  col=%b  row_pressed=%b  debounced=%b  drive_en=%b  debounce_en=%b",
+                 $time, row, col, row_pressed, debounced, drive_en, debounce_en);
     end
 
 endmodule
