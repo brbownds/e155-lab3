@@ -34,9 +34,10 @@ module keyscan (
   
     logic [1:0] settle_cnt;         // 2-cycle delay counter
     logic       settle_done;        // becomes 1 after 2 cycles
-    logic       button_pressed;     // any column active
+    logic [3:0] button_pressed;     // any column active
     logic       exact1_button;      // exactly one col active
     logic       if_0, if_1, if_2, if_3;
+	
 
 
     always_ff @(posedge clk, negedge reset) begin
@@ -48,8 +49,13 @@ module keyscan (
         end
         else begin
             state          <= nextstate;
-            button_pressed <= (|col);
-            exact1_button  <= $onehot(col);
+            exact1_button  <= ($onehot(col));
+			
+			if((state == R0_IDLE)||(state == R1_IDLE)||(state == R2_IDLE)||(state == R3_IDLE))
+				button_pressed <= col;
+			else
+				button_pressed <= (^col);
+
 
             // settle counter increments in IDLE states
             if (((state == R0_IDLE)||(state == R1_IDLE)||(state == R2_IDLE)||(state == R3_IDLE)) && !settle_done)
@@ -77,22 +83,22 @@ module keyscan (
 
             R0_IDLE:  nextstate = settle_done ? (exact1_button ? R0_WAIT : R1_IDLE) : R0_IDLE;
             R0_WAIT:  nextstate = debounced ? DRIVE : R0_WAIT;
-            R0_HOLD:  nextstate = button_pressed ? R0_HOLD : R1_IDLE;
+            R0_HOLD:  nextstate = ((button_pressed & col) == 0) ? R1_IDLE : R0_HOLD;
 
             R1_IDLE:  nextstate = settle_done ? (exact1_button ? R1_WAIT : R2_IDLE) : R1_IDLE;
             R1_WAIT:  nextstate = debounced ? DRIVE : R1_WAIT;
-            R1_HOLD:  nextstate = button_pressed ? R1_HOLD : R2_IDLE;
+            R1_HOLD:  nextstate = ((button_pressed & col) == 0) ? R2_IDLE : R1_HOLD;
 
             R2_IDLE:  nextstate = settle_done ? (exact1_button ? R2_WAIT : R3_IDLE) : R2_IDLE;
             R2_WAIT:  nextstate = debounced ? DRIVE : R2_WAIT;
-            R2_HOLD:  nextstate = button_pressed ? R2_HOLD : R3_IDLE;
+            R2_HOLD:  nextstate = ((button_pressed & col) == 0) ? R3_IDLE : R2_HOLD;
 
             R3_IDLE:  nextstate = settle_done ? (exact1_button ? R3_WAIT : R0_IDLE) : R3_IDLE;
             R3_WAIT:  nextstate = debounced ? DRIVE : R3_WAIT;
-            R3_HOLD:  nextstate = button_pressed ? R3_HOLD : R0_IDLE;
+            R3_HOLD:  nextstate = ((button_pressed & col) == 0) ? R0_IDLE : R3_HOLD;
 
             DRIVE: begin
-                if (button_pressed) begin
+                if (exact1_button) begin
                     if      (if_0) nextstate = R0_HOLD;
                     else if (if_1) nextstate = R1_HOLD;
                     else if (if_2) nextstate = R2_HOLD;
@@ -121,5 +127,8 @@ module keyscan (
  
 	assign debounce_en = ((state == R0_WAIT)||(state == R1_WAIT)||(state == R2_WAIT)||(state == R3_WAIT));
     assign drive_en    = (state == DRIVE);
+	
 
 endmodule
+
+
